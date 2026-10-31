@@ -1,0 +1,4 @@
+Gene symbol: MYH11
+NCBI Gene ID: 4629
+Official name: myosin heavy chain 11
+Chromosome: 16
