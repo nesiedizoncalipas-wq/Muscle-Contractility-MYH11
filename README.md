@@ -6,11 +6,19 @@ This project investigates the human **MYH11 (myosin heavy chain 11)** gene and i
 
 The analysis includes gene identification, retrieval of the protein sequence, amino acid composition analysis, ClinVar variant investigation, and a schematic illustrating the affected splice-donor site.
 
-## 1. Gene and Assignment Information
+**Project title:** MYH11 Protein Structure and Mutation Analysis  
+**Assignment number:** 03 (MYH11)
+**Organism:** Homo sapiens  
+**Assigned variant:** NM_002474.3:c.3858+1G>A
 
-| Item | Information |
+# MYH11 Protein Structure and Mutation Analysis
+
+## A. Assignment Information
+
+| Item | Details |
 |---|---|
-| Gene symbol | MYH11 |
+| Assignment number | 03 |
+| Gene | MYH11 |
 | Official gene name | Myosin heavy chain 11 |
 | Organism | Homo sapiens |
 | NCBI Gene ID | 4629 |
@@ -18,23 +26,206 @@ The analysis includes gene identification, retrieval of the protein sequence, am
 | Assigned transcript | NM_002474.3 |
 | Assigned variant | NM_002474.3:c.3858+1G>A |
 | ClinVar Variation ID | 1467492 |
-| Variant type | Single-nucleotide variant (splice donor) |
+| ClinVar accession | VCV001467492.9 |
 | Protein accession | NP_002465.1 |
-| Protein length | 1,972 amino acids |
 
-## 2. Biological Function of MYH11
+## B. Research Question
 
-The MYH11 gene encodes smooth muscle myosin heavy chain 11, a major contractile protein found in smooth muscle cells. It is part of a myosin complex that converts chemical energy from ATP hydrolysis into mechanical energy. This allows smooth muscle to contract and relax, supporting functions such as the regulation of blood vessel diameter and movement of internal organs.
+What is the amino acid composition of the MYH11 protein, and how might the assigned splice-site variant, NM_002474.3:c.3858+1G>A, affect normal RNA processing and smooth muscle function?
 
-Changes affecting MYH11 may interfere with normal smooth muscle function and are associated with conditions including familial thoracic aortic aneurysm and dissection.
+## C. Methods
 
-Source: [NCBI MYH11 Gene](https://www.ncbi.nlm.nih.gov/datasets/gene/4629/)
+The analysis was performed using R and RStudio. The NCBI database was used to retrieve the gene, transcript, and protein information. ClinVar was used to examine the assigned variant and its clinical classification.
 
-## 3. Protein Sequence Retrieval and Amino Acid Composition
+### 1. Set up the project and install the packages
 
-The protein sequence was retrieved from NCBI using the assigned RefSeq transcript NM_002474.3. The corresponding protein accession identified by the R script was **NP_002465.1**.
+I created a main project folder named `Muscle_Contractility_MYH11` with three subfolders: `data`, `results`, and `figures`. I also created an R script named `analysis.R`.
 
-The retrieved protein sequence contained **1,972 amino acids**.
+I used the `rentrez` package to retrieve information from NCBI and `ggplot2` to create the figures.
+
+For a fresh R installation, I first ran:
+
+```r
+install.packages(c("rentrez", "ggplot2"))
+```
+
+Then I loaded the packages and set the assignment information:
+
+```r
+library(rentrez)
+library(ggplot2)
+
+gene_symbol <- "MYH11"
+transcript_accession <- "NM_002474.3"
+clinvar_id <- "1467492"
+variant_protein <- ""
+
+for (x in c("data", "results", "figures")) {
+  dir.create(x, showWarnings = FALSE)
+}
+```
+
+The empty `variant_protein` value was used because ClinVar did not provide a protein-level change for this splice-site variant.
+
+### 2. Retrieve the gene information from NCBI
+
+I searched the NCBI Gene database for MYH11 in humans and recorded the Gene ID, official name, and chromosome.
+
+The recorded results were saved as `results/gene_summary.txt`.
+
+The information retrieved was:
+
+- Gene symbol: MYH11
+- NCBI Gene ID: 4629
+- Official name: myosin heavy chain 11
+- Chromosome: 16
+
+### 3. Retrieve the assigned transcript and protein sequence
+
+I used the assigned RefSeq transcript accession, NM_002474.3, to retrieve its GenBank record. I then extracted the corresponding NP protein accession and downloaded its FASTA sequence.
+
+The following commands were used:
+
+```r
+gb <- entrez_fetch(
+  db = "nuccore",
+  id = transcript_accession,
+  rettype = "gb",
+  retmode = "text"
+)
+
+pat <- '/protein_id="NP_[0-9]+[.][0-9]+"'
+fragment <- regmatches(gb, regexpr(pat, gb))
+
+if (length(fragment) == 0) {
+  stop("NP protein ID not found; inspect the transcript record")
+}
+
+protein_accession <- gsub(
+  '^/protein_id="|"$',
+  '',
+  fragment
+)
+
+protein_fasta <- entrez_fetch(
+  db = "protein",
+  id = protein_accession,
+  rettype = "fasta",
+  retmode = "text"
+)
+
+if (!startsWith(protein_fasta, ">")) {
+  stop("Invalid FASTA")
+}
+
+fasta_file <- file.path(
+  "data",
+  paste0(gene_symbol, "_protein.fasta")
+)
+
+writeLines(protein_fasta, fasta_file)
+
+cat("Matched protein:", protein_accession, "\n")
+
+writeLines(
+  paste("NP accession:", protein_accession),
+  "results/protein_accession.txt"
+)
+```
+
+The retrieved protein accession was NP_002465.1. The FASTA file was saved as `data/MYH11_protein.fasta`, while the accession information was saved in `results/protein_accession.txt`.
+
+### 4. Calculate the amino acid composition
+
+I read the downloaded FASTA file, removed its header, and counted the standard amino acids in the sequence.
+
+```r
+fasta_lines <- readLines(fasta_file)
+
+sequence <- paste(
+  fasta_lines[!grepl("^>", fasta_lines)],
+  collapse = ""
+)
+
+aa <- strsplit(toupper(sequence), "")[[1]]
+
+protein_length <- length(aa)
+
+standard <- strsplit(
+  "ACDEFGHIKLMNPQRSTVWY",
+  ""
+)[[1]]
+
+counts <- table(factor(aa, levels = standard))
+
+results <- data.frame(
+  AminoAcid = standard,
+  Count = as.integer(counts)
+)
+
+write.csv(
+  results,
+  "results/amino_acid_composition.csv",
+  row.names = FALSE
+)
+
+cat("Protein length:", protein_length, "amino acids\n")
+
+print(head(results[order(-results$Count), ], 3))
+```
+
+I used `ggplot2` to create the amino acid composition chart:
+
+```r
+fig1 <- ggplot(results, aes(AminoAcid, Count)) +
+  geom_col(fill = "grey45") +
+  theme_bw() +
+  labs(
+    title = paste(gene_symbol, "amino-acid composition"),
+    x = "Amino acid",
+    y = "Number of residues"
+  )
+
+print(fig1)
+
+ggsave(
+  "figures/01_amino_acid_composition.png",
+  fig1,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+### 5. Examine the assigned variant in ClinVar
+
+I opened the ClinVar record using Variation ID 1467492 and recorded its transcript, HGVS notation, variant type, genomic location, clinical classification, and submission details.
+
+The ClinVar record was accessed at:
+
+https://www.ncbi.nlm.nih.gov/clinvar/variation/1467492/
+
+I also recorded the two germline submissions and their classifications.
+
+### 6. Create the splice-site schematic
+
+Since the assigned variant is a splice-site variant and no protein change was provided, I followed Option B of the laboratory instructions and created an exon–intron schematic instead of a protein-position plot.
+
+The figure was created using `ggplot2` and saved as:
+
+`figures/02_MYH11_splice_site.png`
+
+The schematic illustrates the affected splice-donor boundary. It is a simplified conceptual drawing and does not represent the complete MYH11 exon structure or exact genomic coordinates.
+
+## D. Results and Figures
+
+### Gene and Protein Results
+
+The NCBI search identified MYH11 as the assigned gene, with Gene ID 4629 and chromosome 16.
+
+The protein sequence retrieved using transcript NM_002474.3 corresponded to accession NP_002465.1 and contained **1,972 amino acids**.
+
+### Amino Acid Composition Results
 
 The three most abundant amino acids were:
 
@@ -44,114 +235,78 @@ The three most abundant amino acids were:
 | Leucine (L) | 222 |
 | Lysine (K) | 204 |
 
-Glutamic acid was the most abundant amino acid, followed by leucine and lysine.
+Glutamic acid had the highest count, followed by leucine and lysine.
 
-The amino acid composition describes the frequency of residues in the protein sequence. However, composition alone cannot establish the protein's three-dimensional structure, biological activity, or the functional effect of a genetic variant.
+### Generated Figures
 
-## 4. ClinVar Variant Investigation
+**Figure 1. MYH11 Amino Acid Composition**
 
-The assigned variant is:
+The chart shows the number of occurrences of each of the 20 standard amino acids in the retrieved protein sequence.
 
-**NM_002474.3:c.3858+1G>A**
+File: `figures/01_amino_acid_composition.png`
 
-- ClinVar Variation ID: 1467492
-- ClinVar accession: VCV001467492.9
-- Genomic location: chromosome 16, GRCh38 position 15,726,847
-- Molecular consequence: splice-donor variant
-- Protein change: Not provided
-- Germline classification: Likely pathogenic
-- Submissions contributing to classification: 2 out of 2
+**Figure 2. MYH11 Splice-Site Variant Schematic**
 
-The two contributing submitters are:
+The schematic shows the exon–intron boundary and the location of the assigned splice-donor change.
 
-1. ARUP Laboratories, Molecular Genetics and Genomics — Likely pathogenic.
-2. Labcorp Genetics (formerly Invitae) — Likely pathogenic.
+File: `figures/02_MYH11_splice_site.png`
 
-The aggregate classification is based on the submitted clinical interpretations. The evidence includes the variant's canonical splice-donor location, computational predictions of altered splicing, and clinical observations reported in the literature. The classification should not be interpreted as proof of a specific protein-level consequence.
+## E. Variant Interpretation
 
-[View the ClinVar record](https://www.ncbi.nlm.nih.gov/clinvar/variation/1467492/)
+The assigned variant is NM_002474.3:c.3858+1G>A, with ClinVar Variation ID 1467492. It is a single-nucleotide variant affecting the +1 position of a canonical splice-donor site.
 
-## 5. Discussion: Possible Molecular Effect of the Variant
+ClinVar reports an aggregate germline classification of **likely pathogenic**, supported by two out of two submissions:
 
-The assigned MYH11 variant, NM_002474.3:c.3858+1G>A, affects the first nucleotide of an intron at a canonical splice-donor site. The +1 position is important for recognition of the splice site during pre-mRNA processing. A nucleotide substitution at this position may interfere with normal splicing and produce an abnormal messenger RNA transcript.
+1. ARUP Laboratories, Molecular Genetics and Genomics — likely pathogenic, last evaluated September 14, 2023.
+2. Labcorp Genetics (formerly Invitae) — likely pathogenic, last evaluated July 19, 2022.
 
-ClinVar currently classifies the variant as likely pathogenic, with two out of two submissions contributing to the aggregate classification. The ARUP submission reports that the variant disrupts a canonical splice-donor site and has been described in an individual with patent ductus arteriosus, aortic dissection, and intracranial vessel stenosis. The Labcorp/Invitae submission also reports computational predictions suggesting disruption of the consensus splice site. These findings support concern about its potential effect, although the clinical significance should be interpreted with the limitations of the available evidence.
+The +1 position is important for normal splice-site recognition. A change at this position may interfere with the removal of introns during RNA processing and may result in abnormal MYH11 messenger RNA.
 
-Additional experimental evidence was reported in a 2023 study examining the same genomic variant using the alternative MYH11 transcript description NM_001040113.2:c.3879+1G>A. RNA analysis from cultured patient fibroblasts identified abnormal transcripts, including alternative splice products affecting the coiled-coil region of the protein. Some abnormal transcripts retained the reading frame, demonstrating that the consequences of altered splicing may be more complex than simply producing a truncated protein.
+A published 2023 study examined the same variant using the alternative transcript description NM_001040113.2:c.3879+1G>A. RNA analysis identified abnormal transcripts, including alternative splice products and exon skipping. This provides experimental support for an effect on RNA splicing.
 
-Because the assigned transcript does not have a protein-level change provided in ClinVar, a specific amino acid substitution or protein alteration should not be assumed. Further investigation is needed to establish the precise transcript and protein consequences for the assigned reference transcript.
+However, the exact protein-level consequence for the assigned NM_002474.3 transcript was not provided in the ClinVar record. Therefore, I did not assign a specific amino acid change or claim a particular protein alteration.
 
-One suitable follow-up experiment is reverse transcription polymerase chain reaction (RT-PCR), followed by sequencing of the amplified complementary DNA. Comparing patient-derived samples with healthy controls could identify abnormal splice products and help determine how the variant affects MYH11 RNA processing.
+## F. Limitations and Possible Validation Experiment
 
-Overall, the findings support a potential disruption of normal MYH11 RNA splicing, which may affect the function of a protein essential for smooth muscle contraction.
+There are limitations to this analysis. The amino acid composition only shows how frequently each amino acid occurs in the protein sequence. It cannot independently explain the protein's three-dimensional structure, activity, or the effect of a mutation.
 
-## 6. Proposed Additional Experiment
+The splice-site schematic is also simplified and does not show the complete exon–intron organization of MYH11. In addition, the ClinVar classification is based on submitted interpretations and should not be treated as direct proof of every possible molecular consequence.
 
-**Experiment:** Reverse transcription polymerase chain reaction (RT-PCR) followed by Sanger sequencing.
+One possible validation experiment is reverse transcription polymerase chain reaction (RT-PCR), followed by sequencing of the amplified complementary DNA. RNA from patient-derived cells could be compared with RNA from healthy control cells to identify abnormal splice products, such as exon skipping or alternative splice-site usage. This would help determine how the variant affects MYH11 RNA processing.
 
-**Purpose:** To investigate whether the assigned splice-site variant produces abnormal MYH11 RNA transcripts.
+## G. Database Links, Accession Versions, Access Dates, and References
 
-**Expected approach:** RNA would be isolated from patient-derived cells and healthy control cells, converted into complementary DNA, and amplified using primers surrounding the affected splice region. The amplified products would then be sequenced and compared to identify possible exon skipping, partial exon deletion, or alternative splice-site usage.
+### Databases and Accession Versions
 
-## 7. Methods and Tools
+| Database or record | Accession or ID | Link |
+|---|---|---|
+| NCBI Gene | Gene ID 4629 | https://www.ncbi.nlm.nih.gov/gene/4629 |
+| NCBI Nucleotide | NM_002474.3 | https://www.ncbi.nlm.nih.gov/nuccore/NM_002474.3 |
+| NCBI Protein | NP_002465.1 | https://www.ncbi.nlm.nih.gov/protein/NP_002465.1 |
+| ClinVar Variation | VCV001467492.9 | https://www.ncbi.nlm.nih.gov/clinvar/variation/1467492/ |
+| ARUP submission | SCV004562495.1 | Available through the ClinVar record |
+| Labcorp/Invitae submission | SCV002256942.5 | Available through the ClinVar record |
 
-The project used:
+**Date accessed:** October 31, 2026.
 
-- NCBI Gene database for gene identification.
-- NCBI Nucleotide database for transcript retrieval.
-- NCBI Protein database for protein FASTA retrieval.
-- ClinVar for variant classification and clinical submission information.
-- R and RStudio for sequence processing and analysis.
-- `rentrez` for retrieving NCBI records.
-- `ggplot2` for visualizing amino acid composition and the splice-site schematic.
+### References
 
-### Analysis Workflow
+1. National Center for Biotechnology Information. (n.d.). MYH11: Myosin heavy chain 11. NCBI Gene. https://www.ncbi.nlm.nih.gov/gene/4629
 
-1. Identified the assigned MYH11 gene using NCBI.
-2. Retrieved the assigned transcript and corresponding protein accession.
-3. Downloaded the protein FASTA sequence.
-4. Calculated amino acid counts and protein length using R.
-5. Generated the amino acid composition chart.
-6. Examined the assigned variant in ClinVar.
-7. Created a conceptual exon–intron schematic showing the splice-donor variant.
+2. National Center for Biotechnology Information. (n.d.). NM_002474.3, MYH11 transcript record. NCBI Nucleotide. https://www.ncbi.nlm.nih.gov/nuccore/NM_002474.3
 
-### Date Accessed
+3. National Center for Biotechnology Information. (n.d.). NP_002465.1, MYH11 protein record. NCBI Protein. https://www.ncbi.nlm.nih.gov/protein/NP_002465.1
 
-NCBI and ClinVar records were accessed on **October 31, 2026**.
+4. National Center for Biotechnology Information. (2026). NM_002474.3(MYH11):c.3858+1G>A, ClinVar Variation ID 1467492. https://www.ncbi.nlm.nih.gov/clinvar/variation/1467492/
 
-## 8. Project File Organization
+5. Arnaud, P., et al. (2023). Early-Onset Aortic Dissection: Characterization of a New Pathogenic Splicing Variation in the MYH11 Gene with Several In-Frame Abnormal Transcripts. https://pmc.ncbi.nlm.nih.gov/articles/PMC11919123/
 
-The repository contains the following files:
+## H. Errors and Troubleshooting
 
-```text
-Muscle-Contractility-MYH11/
-│
-├── README.md
-├── analysis.R
-│
-├── data/
-│   └── MYH11_protein.fasta
-│
-├── results/
-│   ├── gene_summary.txt
-│   ├── protein_accession.txt
-│   └── amino_acid_composition.csv
-│
-└── figures/
-    ├── 01_amino_acid_composition.png
-    └── 02_MYH11_splice_site.png
-```
+The R analysis was completed using the `rentrez` and `ggplot2` packages. The protein accession was successfully extracted from the assigned transcript, and the FASTA sequence was retrieved and analyzed.
 
-## 9. References
+No major analysis errors remained in the final workflow. If the packages are not installed on a fresh R setup, run the installation command in Method 1 before running the analysis.
 
-1. National Center for Biotechnology Information (NCBI). MYH11: Myosin heavy chain 11. [NCBI Gene ID 4629](https://www.ncbi.nlm.nih.gov/datasets/gene/4629/).
-2. National Center for Biotechnology Information (NCBI). Myosin-11 isoform SM1A, Homo sapiens. [RefSeq NP_002465.1](https://www.ncbi.nlm.nih.gov/protein/NP_002465.1).
-3. National Center for Biotechnology Information (NCBI). ClinVar: NM_002474.3(MYH11):c.3858+1G>A, Variation ID 1467492. [ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/variation/1467492/).
-4. Arnaud, P., et al. (2023). *Early-Onset Aortic Dissection: Characterization of a New Pathogenic Splicing Variation in the MYH11 Gene with Several In-Frame Abnormal Transcripts*. [PubMed Central](https://pmc.ncbi.nlm.nih.gov/articles/PMC11919123/).
-5. Larson, A., et al. (2020). *Intracranial Vessel Stenosis in a Young Patient with an MYH11 Mutation: A Case Report and Review of 2 Prior Cases*. World Neurosurgery, 137, 243–246. [PMID: 32081817](https://pubmed.ncbi.nlm.nih.gov/32081817/).
+If the protein accession cannot be extracted, check that the transcript accession is correct and that the NCBI GenBank record contains a protein ID. If the FASTA file cannot be read, check that the file exists in the `data` folder and that the R working directory is the main project folder.
 
 ---
-
-**Project:** MYH11 Protein Structure and Mutation Analysis  
-**Organism:** Homo sapiens  
-**Assigned variant:** NM_002474.3:c.3858+1G>A
