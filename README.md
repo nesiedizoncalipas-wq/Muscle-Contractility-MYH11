@@ -274,6 +274,44 @@ The splice-site schematic is also simplified and does not show the complete exon
 
 One possible validation experiment is reverse transcription polymerase chain reaction (RT-PCR), followed by sequencing of the amplified complementary DNA. RNA from patient-derived cells could be compared with RNA from healthy control cells to identify abnormal splice products, such as exon skipping or alternative splice-site usage. This would help determine how the variant affects MYH11 RNA processing.
 
+## Required Questions and Answers
+
+### 1. What does your assigned gene encode, and how does this protein contribute to muscle function?
+
+The assigned gene, **MYH11**, encodes myosin heavy chain 11, a protein found in smooth muscle cells. It interacts with actin and uses energy from ATP to produce the force needed for muscle contraction. This helps regulate the contraction and relaxation of blood vessels and supports the normal movement of internal organs.
+
+### 2. What was the exact protein accession and length retrieved with R?
+
+The exact protein accession retrieved using the assigned transcript NM_002474.3 was **NP_002465.1**. The protein sequence contained **1,972 amino acids**.
+
+### 3. What did the amino-acid composition chart show? What can it NOT tell you?
+
+The amino-acid composition chart showed that glutamic acid (E) was the most abundant amino acid, with 272 occurrences, followed by leucine (L), with 222, and lysine (K), with 204.
+
+However, the chart only shows the frequency of amino acids in the protein sequence. It cannot tell us the protein's three-dimensional structure, its actual biological activity, or how a genetic variant affects its function.
+
+### 4. What is your fixed ClinVar variant, and what is its current classification and evidence strength?
+
+My assigned ClinVar variant is **NM_002474.3:c.3858+1G>A**, with ClinVar Variation ID **1467492** and accession **VCV001467492.9**.
+
+Its current aggregate germline classification is **likely pathogenic**, supported by two out of two submissions. The submitting laboratories are ARUP Laboratories and Labcorp Genetics (formerly Invitae), and both classified the variant as likely pathogenic.
+
+There is also experimental evidence from a published 2023 study that examined the same variant using an alternative MYH11 transcript description. RNA analysis identified abnormal transcripts, supporting an effect on RNA splicing. However, the ClinVar aggregate classification and the experimental findings should be considered separately because they represent different types of evidence.
+
+### 5. What is the scientifically supported mechanism linking this variant to muscle function, and what remains uncertain?
+
+The variant affects the +1 position of a canonical splice-donor site. This position is important for normal pre-mRNA splicing. The G-to-A substitution may interfere with splice-site recognition, resulting in abnormal processing of MYH11 messenger RNA.
+
+Since MYH11 encodes a protein involved in smooth muscle contraction, abnormal RNA processing may affect the production or function of this protein. A 2023 study reported abnormal RNA transcripts associated with the same variant, providing experimental support for altered splicing.
+
+However, the exact transcript and protein consequences for the assigned NM_002474.3 transcript remain uncertain. The ClinVar record does not provide a specific protein change, so a particular amino acid substitution or truncated protein should not be assumed.
+
+### 6. What additional experiment would help test the proposed mechanism?
+
+One useful experiment would be **reverse transcription polymerase chain reaction (RT-PCR), followed by sequencing of the amplified complementary DNA**. RNA from patient-derived cells could be compared with RNA from healthy control cells to identify abnormal splice products, such as exon skipping or alternative splice-site usage.
+
+This experiment would help determine whether the variant affects normal MYH11 RNA processing and provide additional evidence about its possible effect on smooth muscle function.
+
 ## G. Database Links, Accession Versions, Access Dates, and References
 
 ### Databases and Accession Versions
